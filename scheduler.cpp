@@ -2,7 +2,7 @@
 #include <thread>
 #include <chrono>
 
-Scheduler::Scheduler() : SimTime(0){}
+Scheduler::Scheduler() : SimTime(0), quit_flag(false){}
 Scheduler::~Scheduler() 
 {
 	if (!calendar.empty())
@@ -61,6 +61,8 @@ void Scheduler::Clear()
 		delete *iter;
 		iter = calendar.erase(iter);
 	}
+	SimTime = 0;
+	quit_flag = false;
 }
 
 void Scheduler::Retrieve()
@@ -73,7 +75,7 @@ void Scheduler::Retrieve()
 void Scheduler::Simulate()
 {
 	ScheduleNode *head;
-	while(true){ 
+	while(!quit_flag){
 		ShowCalendar();
 		head = calendar.front();
 		SimTime = head->time;
@@ -88,4 +90,9 @@ void Scheduler::ShowCalendar() const
 {
 	for (auto iter : calendar)
 		std::cout << iter->time << " " << iter->id  <<"\n";
+}
+
+void Scheduler::Stop()
+{
+	quit_flag = true;
 }

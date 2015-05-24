@@ -19,6 +19,7 @@ class Scheduler
 	private:
 		std::list<ScheduleNode *> calendar;
 		double SimTime;
+		bool quit_flag;
 	public:
 		Scheduler ();
 		~Scheduler();
@@ -37,6 +38,7 @@ class Scheduler
 		void Retrieve();
 		void Simulate();
 		void ShowCalendar() const;
+		void Stop();
 };
 
 #endif
