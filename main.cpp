@@ -42,7 +42,7 @@ int MAXV = 25;
 int Q = 0;
 int N = MAXN;
 int V = MAXV;
-double T = 1;
+double T = 20;
 
 task_data new_task(double arrive_time)
 {
@@ -131,7 +131,6 @@ void Arrive_model2(void *empty_ptr)
 	task_data task = new_task(Clock);
 	std::cout << "Arrive: " << task.tag << " time: " 
 				<< cal.GetTime() << "\n";
-	task_id++;
 
 	Q++;
 	if (Q > 0 && task.n <= N && task.v <= V){
@@ -141,13 +140,14 @@ void Arrive_model2(void *empty_ptr)
 	else {
 		task_queue_m2.push_back(task);
 		std::string *tag = new std::string(task.tag);
-		cal.Schedule(&Promotion_model2, tag, Clock + T, "promotion");//std::to_string(task_id));
+		cal.Schedule(&Promotion_model2, tag, Clock + T, "p" + task.tag);
 		task = task_queue_m2.front();
 		if (Q > 0 && task.n <= N && task.v <= V){
 			cal.Schedule(&Accept_model2, nullptr, Clock, task.tag);
 		}
 	}
 	cal.Schedule(&Arrive_model2, nullptr, Clock + next, std::to_string(task_id));
+	task_id++;
 }
 
 void Accept_model2(void *empty_ptr)
@@ -163,6 +163,7 @@ void Accept_model2(void *empty_ptr)
 	N -= task.n;
 	V -= task.v;
 	task_data *task_ptr = new task_data(task);
+	cal.Cancel("p" + task.tag, Clock);
 	cal.Schedule(&Leaving_model2, task_ptr, Clock + task.duration, task.tag);
 }
 
