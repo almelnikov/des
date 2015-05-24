@@ -41,7 +41,7 @@ int MAXV = 25;
 int Q = 0;
 int N = MAXN;
 int V = MAXV;
-double T = 20;
+double T = 10;
 
 std::ifstream filein;
 std::ofstream resource_m1, resource_m2;
@@ -69,6 +69,11 @@ task_data new_task(double arrive_time, double dur, int n, int v)
 	return task;
 }
 
+void print_resources(std::ofstream &strm, double time, int n, int v)
+{
+	strm << time << " " << n << " " << v << "\n";
+}
+
 void Arrive(void *empty_ptr)
 {
 	double Clock = cal.GetTime();
@@ -80,8 +85,8 @@ void Arrive(void *empty_ptr)
 		return;
 	}
 	task_data task = new_task(Clock, duration, n, v);
-	std::cout << "Arrive: " << task.tag << " time: " 
-				<< cal.GetTime() << "\n";
+	//std::cout << "Arrive: " << task.tag << " time: " 
+	//			<< cal.GetTime() << "\n";
 	task_id++;
 
 	Q++;
@@ -98,16 +103,27 @@ void Accept(void *empty_ptr)
 {
 	task_data task = task_queue.front();
 	double Clock = cal.GetTime();
+	bool flag_newtask;
 	
-	std::cout << "Accept: " << task.arrive_time << " t:" 
-		<< cal.GetTime() << "\n";
-	
-	task_queue.pop();
-	Q--;
-	N -= task.n;
-	V -= task.v;
-	task_data *task_ptr = new task_data(task);
-	cal.Schedule(&Leaving, task_ptr, Clock + task.duration, task.tag);
+	//std::cout << "Accept: " << task.arrive_time << " t:" 
+	//	<< cal.GetTime() << "\n";
+	do {
+		flag_newtask = false;
+		task_queue.pop();
+		Q--;
+		N -= task.n;
+		V -= task.v;
+		print_resources(resource_m1, Clock, N, V);
+		task_data *task_ptr = new task_data(task);
+		cal.Schedule(&Leaving, task_ptr, Clock + task.duration, task.tag);
+		if (Q > 0){
+			task = task_queue.front();
+			if (task.n <= N && task.v <= V){
+				std::cout << "Second task " << task.n << " " << task.v <<"\n";
+				flag_newtask = true;
+			}
+		}
+	} while (flag_newtask);
 }
 
 void Leaving(void *data_ptr)
@@ -116,26 +132,32 @@ void Leaving(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	V += taskptr->v;
+	print_resources(resource_m1, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue.front();
 		if (next.n <= N && next.v <= V)
 			cal.Schedule(&Accept, nullptr, cal.GetTime(), next.tag);
 	}
-	taskptr->leaving_time = cal.GetTime() + d;
+	taskptr->leaving_time = cal.GetTime();
+	// Вывод данных о времени обслуживания
+	time_m1 << taskptr->arrive_time << " " << cal.GetTime() << " " 
+		    << taskptr->duration << "\n";
 	cal.Schedule(&Release, data_ptr, Clock + d, taskptr->tag);
 }
 
 void Release(void *data_ptr)
 {
 	task_data *taskptr = static_cast<task_data*>(data_ptr);
+	double Clock = cal.GetTime();
 
 	std::cout << "Leave: " << taskptr->tag << " time: " 
 			<< cal.GetTime() << "\n";
 	N += taskptr->n;
+	print_resources(resource_m1, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue.front();
 		if (next.n <= N && next.v <= V)
-			cal.Schedule(&Accept, nullptr, cal.GetTime(), next.tag);
+			cal.Schedule(&Accept, nullptr, Clock, next.tag);
 	}
 	delete taskptr;
 }
@@ -156,8 +178,8 @@ void Arrive_model2(void *empty_ptr)
 		return;
 	}
 	task_data task = new_task(Clock, duration, n, v);
-	std::cout << "Arrive: " << task.tag << " time: " 
-				<< cal.GetTime() << "\n";
+	//std::cout << "Arrive: " << task.tag << " time: " 
+	//			<< cal.GetTime() << "\n";
 
 	Q++;
 	if (Q > 0 && task.n <= N && task.v <= V){
@@ -180,17 +202,29 @@ void Accept_model2(void *empty_ptr)
 {
 	task_data task = task_queue_m2.front();
 	double Clock = cal.GetTime();
+	bool flag_newtask;
 	
-	std::cout << "\nAccept: " << task.arrive_time << " t:" 
-		<< cal.GetTime() << "\n";
+	//std::cout << "\nAccept: " << task.arrive_time << " t:" 
+	//	<< cal.GetTime() << "\n";
 	
-	task_queue_m2.pop_front();
-	Q--;
-	N -= task.n;
-	V -= task.v;
-	task_data *task_ptr = new task_data(task);
-	cal.Cancel("p" + task.tag, Clock);
-	cal.Schedule(&Leaving_model2, task_ptr, Clock + task.duration, task.tag);
+	do {
+		flag_newtask = false;
+		task_queue_m2.pop_front();
+		Q--;
+		N -= task.n;
+		V -= task.v;
+		print_resources(resource_m2, Clock, N, V);
+		task_data *task_ptr = new task_data(task);
+		cal.Cancel("p" + task.tag, Clock);
+		cal.Schedule(&Leaving_model2, task_ptr, Clock + task.duration, task.tag);
+		if (Q > 0){
+			task = task_queue_m2.front();
+			if (task.n <= N && task.v <= V){
+				std::cout << "Second task " << task.n << " " << task.v <<"\n";
+				flag_newtask = true;
+			}
+		}
+	} while (flag_newtask);
 }
 
 void Leaving_model2(void *data_ptr)
@@ -199,26 +233,32 @@ void Leaving_model2(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	V += taskptr->v;
+	print_resources(resource_m2, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue_m2.front();
 		if (next.n <= N && next.v <= V)
 			cal.Schedule(&Accept_model2, nullptr, cal.GetTime(), next.tag);
 	}
-	taskptr->leaving_time = cal.GetTime() + d;
+	taskptr->leaving_time = cal.GetTime();
+	// Вывод данных о времени обслуживания
+	time_m2 << taskptr->arrive_time << " " << cal.GetTime() << " " 
+		    << taskptr->duration << "\n";
 	cal.Schedule(&Release_model2, data_ptr, Clock + d, taskptr->tag);
 }
 
 void Release_model2(void *data_ptr)
 {
 	task_data *taskptr = static_cast<task_data*>(data_ptr);
+	double Clock = cal.GetTime();
 
-	std::cout << "\nRelease: " << taskptr->tag << " time: "
-			<< cal.GetTime() << "\n";
+	//std::cout << "\nRelease: " << taskptr->tag << " time: "
+	//		<< cal.GetTime() << "\n";
 	N += taskptr->n;
+	print_resources(resource_m2, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue_m2.front();
 		if (next.n <= N && next.v <= V)
-			cal.Schedule(&Accept_model2, nullptr, cal.GetTime(), next.tag);
+			cal.Schedule(&Accept_model2, nullptr, Clock, next.tag);
 	}
 	delete taskptr;
 }
@@ -229,7 +269,7 @@ void Promotion_model2(void *strptr)
 	std::string tag = *tagptr;
 	std::list<task_data>::iterator it;
 
-	std::cout << "Promotion " << tag << "\n";
+	//std::cout << "Promotion " << tag << "\n";
 	for (it = task_queue_m2.begin(); it != task_queue_m2.end(); ++it){
 		if (it->tag == tag) {
 			task_data task = *it;
@@ -246,13 +286,23 @@ void Promotion_model2(void *strptr)
 
 int main(int argc, char *argv[])
 {
+	const std::string sfx_res_m1 = "_res_m1";
+	const std::string sfx_res_m2 = "_res_m2";
+	const std::string sfx_time_m1 = "_time_m1";
+	const std::string sfx_time_m2 = "_time_m2";
 	srand(time(NULL));
 	
 	if (argc < 2) {
 		std::cerr << "Uncorrect command line arguments";
 		return -1;
 	}
+
 	filein.open(argv[1]);
+	resource_m1.open(argv[1] + sfx_res_m1);
+	resource_m2.open(argv[1] + sfx_res_m2);
+	time_m1.open(argv[1] + sfx_time_m1);
+	time_m2.open(argv[1] + sfx_time_m2);
+
 	Clear_Simulation();
 	cal.Schedule(&Arrive, nullptr, 0, std::to_string(task_id));
 	try{
