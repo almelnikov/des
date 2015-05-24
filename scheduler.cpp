@@ -74,13 +74,13 @@ void Scheduler::Simulate()
 {
 	ScheduleNode *head;
 	while(true){ 
-	//	ShowCalendar();
+		//ShowCalendar();
 		head = calendar.front();
-		Retrieve();
 		SimTime = head->time;
+		Retrieve();
 		std::cout << "Simulation time: " << SimTime << "\n";
 		head->event_handler(head->attr);
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 }	
 
