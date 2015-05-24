@@ -24,13 +24,13 @@ class Scheduler
 		Scheduler(const Scheduler&) = delete;
 		Scheduler& operator =(const Scheduler&) = delete;
 		
-		ScheduleNode* newScheduleNode(void (*event) (void), double t,
+		ScheduleNode* newScheduleNode(void (*event) (void), const double t,
 									const std::string &event_id);
 		
-		void Schedule(void (*event) (void), double t, 
-						const std::string &event_id);
+		void Schedule(void (*event) (void), const double t, 
+						const std::string &event_id = "");
 		
-		void Cancel(const std::string &event_id, double t);
+		void Cancel(const std::string &event_id, const double t);
 		double GetTime() const;
 		void Clear();
 		void Retrieve();
