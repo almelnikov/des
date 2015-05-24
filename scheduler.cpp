@@ -9,23 +9,24 @@ Scheduler::~Scheduler()
 		Clear();
 }
 
-ScheduleNode* Scheduler::newScheduleNode(void (*event) (void), const double t,
-							const std::string &event_id) 
+ScheduleNode* Scheduler::newScheduleNode(void (*event) (void*), void *attr,
+							const double t, const std::string &event_id)
 {
 	auto *new_event = new ScheduleNode;
 	new_event->time = t;
 	new_event->event_handler = event;
+	new_event->attr = attr;
 	new_event->id = event_id;
 	new_event->next = nullptr;
 	return new_event;
 }
 
-void Scheduler::Schedule(void (*event) (void), const double t, 
-						const std::string &event_id)
+void Scheduler::Schedule(void (*event) (void*), void *attr, const double t, 
+				const std::string &event_id)
 {
-	auto *new_event = newScheduleNode(event, t, event_id);
+	auto *new_event = newScheduleNode(event, attr, t, event_id);
 	if (calendar.empty()){
-		calendar.push_back(new_event);	
+		calendar.push_back(new_event);
 	} else {
 		for (auto iter = calendar.begin(); iter != calendar.end(); iter++){
 			if (t <= (*iter)->time){
@@ -34,7 +35,7 @@ void Scheduler::Schedule(void (*event) (void), const double t,
 			}
 		}
 		calendar.push_back(new_event);
-	}			
+	}
 }
 
 void Scheduler::Cancel(const std::string &event_id, const double t)
@@ -78,7 +79,7 @@ void Scheduler::Simulate()
 		Retrieve();
 		SimTime = head->time;
 		std::cout << "Simulation time: " << SimTime << "\n";
-		head->event_handler();
+		head->event_handler(head->attr);
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 }	

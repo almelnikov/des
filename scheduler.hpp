@@ -8,7 +8,8 @@
 struct ScheduleNode
 {
 	double time;
-	void (*event_handler) (void);
+	void (*event_handler) (void*);
+	void *attr;
 	std::string id;
 	ScheduleNode *next;
 };
@@ -24,10 +25,10 @@ class Scheduler
 		Scheduler(const Scheduler&) = delete;
 		Scheduler& operator =(const Scheduler&) = delete;
 		
-		ScheduleNode* newScheduleNode(void (*event) (void), const double t,
-									const std::string &event_id);
+		ScheduleNode* newScheduleNode(void (*event) (void*), void *attr,
+									const double t, const std::string &event_id);
 		
-		void Schedule(void (*event) (void), const double t, 
+		void Schedule(void (*event) (void*), void *attr, const double t, 
 						const std::string &event_id = "");
 		
 		void Cancel(const std::string &event_id, const double t);
