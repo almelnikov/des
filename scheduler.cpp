@@ -2,30 +2,31 @@
 #include <thread>
 #include <chrono>
 
-Scheduler::Scheduler() : SimTime(0){}
+Scheduler::Scheduler() : SimTime(0), quit_flag(false){}
 Scheduler::~Scheduler() 
 {
 	if (!calendar.empty())
 		Clear();
 }
 
-ScheduleNode* Scheduler::newScheduleNode(void (*event) (void), const double t,
-							const std::string &event_id) 
+ScheduleNode* Scheduler::newScheduleNode(void (*event) (void*), void *attr,
+							const double t, const std::string &event_id)
 {
 	auto *new_event = new ScheduleNode;
 	new_event->time = t;
 	new_event->event_handler = event;
+	new_event->attr = attr;
 	new_event->id = event_id;
 	new_event->next = nullptr;
 	return new_event;
 }
 
-void Scheduler::Schedule(void (*event) (void), const double t, 
-						const std::string &event_id)
+void Scheduler::Schedule(void (*event) (void*), void *attr, const double t, 
+				const std::string &event_id)
 {
-	auto *new_event = newScheduleNode(event, t, event_id);
+	auto *new_event = newScheduleNode(event, attr, t, event_id);
 	if (calendar.empty()){
-		calendar.push_back(new_event);	
+		calendar.push_back(new_event);
 	} else {
 		for (auto iter = calendar.begin(); iter != calendar.end(); iter++){
 			if (t <= (*iter)->time){
@@ -34,7 +35,7 @@ void Scheduler::Schedule(void (*event) (void), const double t,
 			}
 		}
 		calendar.push_back(new_event);
-	}			
+	}
 }
 
 void Scheduler::Cancel(const std::string &event_id, const double t)
@@ -60,6 +61,8 @@ void Scheduler::Clear()
 		delete *iter;
 		iter = calendar.erase(iter);
 	}
+	SimTime = 0;
+	quit_flag = false;
 }
 
 void Scheduler::Retrieve()
@@ -72,14 +75,14 @@ void Scheduler::Retrieve()
 void Scheduler::Simulate()
 {
 	ScheduleNode *head;
-	while(true){ 
-	//	ShowCalendar();
+	while(!quit_flag){
+		ShowCalendar();
 		head = calendar.front();
-		Retrieve();
 		SimTime = head->time;
+		Retrieve();
 		std::cout << "Simulation time: " << SimTime << "\n";
-		head->event_handler();
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		head->event_handler(head->attr);
+		//std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 }	
 
@@ -87,4 +90,9 @@ void Scheduler::ShowCalendar() const
 {
 	for (auto iter : calendar)
 		std::cout << iter->time << " " << iter->id  <<"\n";
+}
+
+void Scheduler::Stop()
+{
+	quit_flag = true;
 }
