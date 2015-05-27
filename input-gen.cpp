@@ -7,6 +7,8 @@
 	Число входящих событий
 	N
 	V
+	d
+	T
 	lambda - время следующего события
 	mu - Expon(mu) + rho - время выполнения события
 	rho
@@ -24,7 +26,7 @@ int main(int argc, char *argv[])
 	std::ifstream filein;
 	std::ofstream fileout;
 	int num, N, V;
-	double lambda, mu, rho;
+	double lambda, mu, rho, d, T;
 
 	srand(time(NULL));
 	
@@ -34,9 +36,9 @@ int main(int argc, char *argv[])
 	}
 	filein.open(argv[1]);
 	fileout.open(argv[2]);
-	filein >> num >> N >> V;
+	filein >> num >> N >> V >> d >> T;
 	filein >> lambda >> mu >> rho;
-	fileout << N << " " << V << "\n";
+	fileout << N << " " << V << " " << d << " " << T << "\n";
 	for (int i = 0; i < num; i++) {
 		fileout << Expon(lambda) << " ";
 		fileout << rho + Expon(mu) << " ";

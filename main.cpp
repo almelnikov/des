@@ -1,10 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <queue>
-#include <map>
 #include <list>
-#include <limits>
-#include <functional>
+#include <thread>
 #include "generators.hpp"
 #include "scheduler.hpp"
 
@@ -35,13 +33,13 @@ std::queue<task_data> task_queue;
 std::list<task_data> task_queue_m2;
 
 int task_id = 0;
-double d = 0.5;
 int MAXN = 100;
 int MAXV = 25;
 int Q = 0;
 int N = MAXN;
 int V = MAXV;
-double T = 10;
+double T;
+double d;
 
 std::ifstream filein;
 std::ofstream resource_m1, resource_m2;
@@ -51,6 +49,8 @@ void Clear_Simulation()
 {
 	filein >> MAXN;
 	filein >> MAXV;
+	filein >> d;
+	filein >> T;
 	task_id = 0;
 	Q = 0;
 	N = MAXN;
@@ -69,9 +69,9 @@ task_data new_task(double arrive_time, double dur, int n, int v)
 	return task;
 }
 
-void print_resources(std::ofstream &strm, double time, int n, int v)
+void print_resources(std::ofstream &strm, int n, int v)
 {
-	strm << time << " " << n << " " << v << "\n";
+	strm << static_cast<double>(n) / MAXN << " " << static_cast<double>(v) / MAXV << "\n";
 }
 
 void Arrive(void *empty_ptr)
@@ -85,8 +85,7 @@ void Arrive(void *empty_ptr)
 		return;
 	}
 	task_data task = new_task(Clock, duration, n, v);
-	//std::cout << "Arrive: " << task.tag << " time: " 
-	//			<< cal.GetTime() << "\n";
+
 	task_id++;
 
 	Q++;
@@ -104,22 +103,19 @@ void Accept(void *empty_ptr)
 	task_data task = task_queue.front();
 	double Clock = cal.GetTime();
 	bool flag_newtask;
-	
-	//std::cout << "Accept: " << task.arrive_time << " t:" 
-	//	<< cal.GetTime() << "\n";
+
 	do {
 		flag_newtask = false;
 		task_queue.pop();
 		Q--;
 		N -= task.n;
 		V -= task.v;
-		print_resources(resource_m1, Clock, N, V);
+		print_resources(resource_m1, N, V);
 		task_data *task_ptr = new task_data(task);
 		cal.Schedule(&Leaving, task_ptr, Clock + task.duration, task.tag);
 		if (Q > 0){
 			task = task_queue.front();
 			if (task.n <= N && task.v <= V){
-				std::cout << "Second task " << task.n << " " << task.v <<"\n";
 				flag_newtask = true;
 			}
 		}
@@ -132,7 +128,7 @@ void Leaving(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	V += taskptr->v;
-	print_resources(resource_m1, Clock, N, V);
+	print_resources(resource_m1, N, V);
 	if (Q > 0){
 		task_data next = task_queue.front();
 		if (next.n <= N && next.v <= V)
@@ -140,8 +136,7 @@ void Leaving(void *data_ptr)
 	}
 	taskptr->leaving_time = cal.GetTime();
 	// Вывод данных о времени обслуживания
-	time_m1 << taskptr->arrive_time << " " << cal.GetTime() << " " 
-		    << taskptr->duration << "\n";
+	time_m1 << cal.GetTime() - taskptr->arrive_time  << "\n"; 
 	cal.Schedule(&Release, data_ptr, Clock + d, taskptr->tag);
 }
 
@@ -149,11 +144,8 @@ void Release(void *data_ptr)
 {
 	task_data *taskptr = static_cast<task_data*>(data_ptr);
 	double Clock = cal.GetTime();
-
-	std::cout << "Leave: " << taskptr->tag << " time: " 
-			<< cal.GetTime() << "\n";
 	N += taskptr->n;
-	print_resources(resource_m1, Clock, N, V);
+	print_resources(resource_m1, N, V);
 	if (Q > 0){
 		task_data next = task_queue.front();
 		if (next.n <= N && next.v <= V)
@@ -178,8 +170,6 @@ void Arrive_model2(void *empty_ptr)
 		return;
 	}
 	task_data task = new_task(Clock, duration, n, v);
-	//std::cout << "Arrive: " << task.tag << " time: " 
-	//			<< cal.GetTime() << "\n";
 
 	Q++;
 	if (Q > 0 && task.n <= N && task.v <= V){
@@ -204,23 +194,19 @@ void Accept_model2(void *empty_ptr)
 	double Clock = cal.GetTime();
 	bool flag_newtask;
 	
-	//std::cout << "\nAccept: " << task.arrive_time << " t:" 
-	//	<< cal.GetTime() << "\n";
-	
 	do {
 		flag_newtask = false;
 		task_queue_m2.pop_front();
 		Q--;
 		N -= task.n;
 		V -= task.v;
-		print_resources(resource_m2, Clock, N, V);
+		print_resources(resource_m2, N, V);
 		task_data *task_ptr = new task_data(task);
 		cal.Cancel("p" + task.tag, Clock);
 		cal.Schedule(&Leaving_model2, task_ptr, Clock + task.duration, task.tag);
 		if (Q > 0){
 			task = task_queue_m2.front();
 			if (task.n <= N && task.v <= V){
-				std::cout << "Second task " << task.n << " " << task.v <<"\n";
 				flag_newtask = true;
 			}
 		}
@@ -233,7 +219,7 @@ void Leaving_model2(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	V += taskptr->v;
-	print_resources(resource_m2, Clock, N, V);
+	print_resources(resource_m2, N, V);
 	if (Q > 0){
 		task_data next = task_queue_m2.front();
 		if (next.n <= N && next.v <= V)
@@ -241,8 +227,7 @@ void Leaving_model2(void *data_ptr)
 	}
 	taskptr->leaving_time = cal.GetTime();
 	// Вывод данных о времени обслуживания
-	time_m2 << taskptr->arrive_time << " " << cal.GetTime() << " " 
-		    << taskptr->duration << "\n";
+	time_m2 << cal.GetTime() - taskptr->arrive_time << "\n";
 	cal.Schedule(&Release_model2, data_ptr, Clock + d, taskptr->tag);
 }
 
@@ -251,10 +236,8 @@ void Release_model2(void *data_ptr)
 	task_data *taskptr = static_cast<task_data*>(data_ptr);
 	double Clock = cal.GetTime();
 
-	//std::cout << "\nRelease: " << taskptr->tag << " time: "
-	//		<< cal.GetTime() << "\n";
 	N += taskptr->n;
-	print_resources(resource_m2, Clock, N, V);
+	print_resources(resource_m2, N, V);
 	if (Q > 0){
 		task_data next = task_queue_m2.front();
 		if (next.n <= N && next.v <= V)
@@ -268,8 +251,6 @@ void Promotion_model2(void *strptr)
 	std::string *tagptr = static_cast<std::string*>(strptr);
 	std::string tag = *tagptr;
 	std::list<task_data>::iterator it;
-
-	//std::cout << "Promotion " << tag << "\n";
 	for (it = task_queue_m2.begin(); it != task_queue_m2.end(); ++it){
 		if (it->tag == tag) {
 			task_data task = *it;
@@ -317,12 +298,13 @@ int main(int argc, char *argv[])
 	filein.open(argv[1]);
 	Clear_Simulation();
 	cal.Schedule(&Arrive_model2, nullptr, 0, std::to_string(task_id));
-	std::cout << "\nModel2\n";
 	try{
 		cal.Simulate();
 	}
 	catch(...){
 		std::cout << "\nEND:\n";
 	}
+	filein.close();
+	
 	return 0;
 }
