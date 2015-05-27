@@ -69,9 +69,10 @@ task_data new_task(double arrive_time, double dur, int n, int v)
 	return task;
 }
 
-void print_resources(std::ofstream &strm, int n, int v)
+void print_resources(std::ofstream &strm, double Clock, int n, int v)
 {
-	strm << static_cast<double>(n) / MAXN << " " << static_cast<double>(v) / MAXV << "\n";
+	strm << Clock << " " << static_cast<double>(n) / MAXN << " "
+		 << static_cast<double>(v) / MAXV << "\n";
 }
 
 void Arrive(void *empty_ptr)
@@ -110,7 +111,6 @@ void Accept(void *empty_ptr)
 		Q--;
 		N -= task.n;
 		V -= task.v;
-		print_resources(resource_m1, N, V);
 		task_data *task_ptr = new task_data(task);
 		cal.Schedule(&Leaving, task_ptr, Clock + task.duration, task.tag);
 		if (Q > 0){
@@ -120,6 +120,7 @@ void Accept(void *empty_ptr)
 			}
 		}
 	} while (flag_newtask);
+	print_resources(resource_m1, Clock, N, V);
 }
 
 void Leaving(void *data_ptr)
@@ -128,7 +129,7 @@ void Leaving(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	V += taskptr->v;
-	print_resources(resource_m1, N, V);
+	print_resources(resource_m1, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue.front();
 		if (next.n <= N && next.v <= V)
@@ -145,7 +146,7 @@ void Release(void *data_ptr)
 	task_data *taskptr = static_cast<task_data*>(data_ptr);
 	double Clock = cal.GetTime();
 	N += taskptr->n;
-	print_resources(resource_m1, N, V);
+	print_resources(resource_m1, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue.front();
 		if (next.n <= N && next.v <= V)
@@ -200,7 +201,6 @@ void Accept_model2(void *empty_ptr)
 		Q--;
 		N -= task.n;
 		V -= task.v;
-		print_resources(resource_m2, N, V);
 		task_data *task_ptr = new task_data(task);
 		cal.Cancel("p" + task.tag, Clock);
 		cal.Schedule(&Leaving_model2, task_ptr, Clock + task.duration, task.tag);
@@ -211,6 +211,7 @@ void Accept_model2(void *empty_ptr)
 			}
 		}
 	} while (flag_newtask);
+	print_resources(resource_m2, Clock, N, V);
 }
 
 void Leaving_model2(void *data_ptr)
@@ -219,7 +220,7 @@ void Leaving_model2(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	V += taskptr->v;
-	print_resources(resource_m2, N, V);
+	print_resources(resource_m2, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue_m2.front();
 		if (next.n <= N && next.v <= V)
@@ -237,7 +238,7 @@ void Release_model2(void *data_ptr)
 	double Clock = cal.GetTime();
 
 	N += taskptr->n;
-	print_resources(resource_m2, N, V);
+	print_resources(resource_m2, Clock, N, V);
 	if (Q > 0){
 		task_data next = task_queue_m2.front();
 		if (next.n <= N && next.v <= V)
